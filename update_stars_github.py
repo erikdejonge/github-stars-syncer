@@ -11,6 +11,7 @@ reload(sys)
 
 sys.setdefaultencoding("utf-8")
 
+import tarfile
 import json
 import os
 import pipes
@@ -53,6 +54,8 @@ def clone_or_pull_from(remote):
     if exists(gp):
         r = Repo(gp)
         r.remote().update()
+
+
         ret = name + " " + str(r.active_branch) + " pulled"
         print "\033[37m", ret, "\033[0m"
     else:
@@ -117,7 +120,7 @@ def main():
     ghbnames = []
 
     for i in lt:
-        ghbnames.append(i["name"]) #pipes.quote(os.path.basename(i["git_url"]).replace(".git", "")).strip())
+        ghbnames.append(i["name"])
         cnt += 1
         to_clone_or_pull.append(i["git_url"])
 
@@ -140,8 +143,10 @@ def main():
             if exists(delp):
                 if os.path.isdir(delp):
                     if os.path.basename(delp) != "_newrepos":
-                        print "\033[31m", "removing:", delp, "\033[0m"
-                        shutil.rmtree(delp)
+                        print "\033[31m", "tarring:", delp, "\033[0m"
+                        tar = tarfile.open(pipes.quote(os.path.basename(delp))+".tar", "w")
+                        tar.add(delp)
+                        tar.close()
                 else:
                     print "\033[91m", "WARNING: files in directory", delp, "\033[0m"
             else:
@@ -163,6 +168,16 @@ def main():
 
             if not found:
                 print "\033[91m", ghbn, "\033[0m"
+
+        for folder in dirnames:
+            found = False
+
+            for ghbn in names:
+                if ghbn == folder:
+                    found = True
+
+            if not found:
+                print "\033[91m", folder, "\033[0m"
 
 
 if __name__ == "__main__":
