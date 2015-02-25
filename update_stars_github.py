@@ -7,6 +7,8 @@ import sys
 reload(sys)
 
 # noinspection PyUnresolvedReferences
+
+
 sys.setdefaultencoding("utf-8")
 
 import json
@@ -52,9 +54,10 @@ def clone_or_pull_from(remote):
         r = Repo(gp)
         r.remote().update()
         ret = name + " " + str(r.active_branch) + " pulled"
+        print "\033[37m", ret, "\033[0m"
     else:
         ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-        print ret
+        print "\033[32m", ret, "\033[0m"
         newrepos = join(join(join(expanduser("~"), "workspace"), "github"), "_newrepos")
 
         if not exists(newrepos):
@@ -62,8 +65,8 @@ def clone_or_pull_from(remote):
 
         gp = join(newrepos, name)
         ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
+        print "\033[30m", ret, "\033[0m"
 
-    print ret
     return True
 
 
@@ -88,11 +91,25 @@ def main():
         lt = cPickle.load(open("starlist.pickle"))
 
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
-    print githubdir
+    print "\033[34mGithub folder:", githubdir, "\033[0m"
     newrepos = join(githubdir, "_newrepos")
 
     if exists(newrepos) and os.path.isdir(newrepos):
         shutil.rmtree(newrepos)
+
+    names = [x["name"] for x in lt]
+    d = {}
+    double_found = False
+
+    for n in names:
+        if n in d:
+            print "\033[91mdouble:", n, "\033[0m"
+            double_found = True
+
+        d[n] = True
+
+    if double_found:
+        raise AssertionError("found double name")
 
     ltdir = [x.strip().lower() for x in os.listdir(githubdir)]
     cnt = 0
@@ -100,7 +117,7 @@ def main():
     ghbnames = []
 
     for i in lt:
-        ghbnames.append(pipes.quote(os.path.basename(i["git_url"]).replace(".git", "")).strip())
+        ghbnames.append(i["name"]) #pipes.quote(os.path.basename(i["git_url"]).replace(".git", "")).strip())
         cnt += 1
         to_clone_or_pull.append(i["git_url"])
 
@@ -108,7 +125,7 @@ def main():
 
     for retval in p.map(clone_or_pull_from, to_clone_or_pull):
         if not retval:
-            raise AssertionError(retval)
+           raise AssertionError(retval)
 
     for folder in os.listdir(githubdir):
         found = False
@@ -122,13 +139,30 @@ def main():
 
             if exists(delp):
                 if os.path.isdir(delp):
-                    print "removing:", delp
-                    shutil.rmtree(delp)
+                    if os.path.basename(delp) != "_newrepos":
+                        print "\033[31m", "removing:", delp, "\033[0m"
+                        shutil.rmtree(delp)
                 else:
-                    print "WARNING: files in directory", delp
+                    print "\033[91m", "WARNING: files in directory", delp, "\033[0m"
+            else:
+                print "\033[91m", delp, "\033[0m"
 
-    print len(lt), "items github"
-    print len(ltdir), "items folder"
+    print "\033[32mDone\033[0m"
+    if len(lt) != len(ltdir):
+        print "\033[31mItems and folderitems is not equal\033[0m"
+        print "\033[90m", len(lt), "items github", "\033[0m"
+        print "\033[90m", len(ltdir), "items folder", "\033[0m"
+        dirnames = os.listdir(githubdir)
+
+        for ghbn in names:
+            found = False
+
+            for folder in dirnames:
+                if ghbn == folder:
+                    found = True
+
+            if not found:
+                print "\033[91m", ghbn, "\033[0m"
 
 
 if __name__ == "__main__":
