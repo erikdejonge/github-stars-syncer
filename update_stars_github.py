@@ -48,12 +48,12 @@ def get_star_page(num):
     return []
 
 
-def clone_or_pull_from(remote):
+def clone_or_pull_from(remote, name):
     """
     @type remote: str, unicode
+    @type name: str, unicode
     @return: None
     """
-    name = pipes.quote(os.path.basename(remote).replace(".git", "")).strip()
     gp = join(join(join(expanduser("~"), "workspace"), "github"), name)
 
     if exists(gp):
@@ -62,10 +62,12 @@ def clone_or_pull_from(remote):
         origin.fetch()
         origin.pull()
         ret = name + " " + str(r.active_branch) + " pulled"
-        print "\033[37m", ret, "\033[0m"
+        #print "\033[37m", ret, "\033[0m"
+        sys.stdout.write("\033[37m.\033[0m")
+        sys.stdout.flush()
     else:
         ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-        print "\033[32m", ret, "\033[0m"
+        #print "\033[32m", ret, "\033[0m"
         newrepos = join(join(join(expanduser("~"), "workspace"), "github"), "_newrepos")
 
         if not exists(newrepos):
@@ -73,9 +75,18 @@ def clone_or_pull_from(remote):
 
         gp = join(newrepos, name)
         ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-        print "\033[30m", ret, "\033[0m"
+        print "\n\033[32m", ret, "\033[0m"
 
     return True
+
+
+def start_clone_or_pull(args):
+    """
+    @type args: tuple
+    @return: None
+    """
+    url, name = args
+    return clone_or_pull_from(url, name)
 
 
 def main():
@@ -107,17 +118,13 @@ def main():
 
     names = [x["name"] for x in lt]
     d = {}
-    double_found = False
+    doubles_found = []
 
     for n in names:
         if n in d:
-            print "\033[91mdouble:", n, "\033[0m"
-            double_found = True
+            doubles_found.append(n)
 
         d[n] = True
-
-    if double_found:
-        raise AssertionError("found double name")
 
     ltdir = [x.strip().lower() for x in os.listdir(githubdir)]
     cnt = 0
@@ -125,18 +132,27 @@ def main():
     ghbnames = []
 
     for i in lt:
-        ghbnames.append(i["name"])
+        if i["name"] not in doubles_found:
+            name = i["name"]
+            ghbnames.append(name)
+        else:
+            doubles_found.remove(i["name"])
+            name = i["full_name"].replace("/", "_")
+            if name not in ltdir:
+                print "\033[95mdouble:", i["name"], "->", name, "\033[0m"
+            ghbnames.append(name)
+
         cnt += 1
-        to_clone_or_pull.append(i["git_url"])
+        to_clone_or_pull.append((i["git_url"], name))
 
     p = Pool(cpu_count() * 2)
     debug = False
 
     if debug:
-        for arg in to_clone_or_pull:
-            clone_or_pull_from(arg)
+        for arg, name in to_clone_or_pull:
+            start_clone_or_pull(arg)
     else:
-        for retval in p.map(clone_or_pull_from, to_clone_or_pull):
+        for retval in p.map(start_clone_or_pull, to_clone_or_pull):
             if not retval:
                 raise AssertionError(retval)
 
@@ -183,7 +199,7 @@ def main():
             else:
                 print "\033[91m", delp, "\033[0m"
 
-    print "\033[32mDone\033[0m"
+    print "\n\033[32mDone\033[0m"
     if len(lt) != len(ltdir):
         dirnames = os.listdir(githubdir)
         showmessage = False
@@ -197,7 +213,7 @@ def main():
                     showmessage = True
 
             if not found:
-                print "\033[91m", ghbn, "\033[0m"
+                print "\033[31m", ghbn, "diff with gh\033[0m"
 
         for folder in dirnames:
             if folder != "_newrepos":
@@ -209,10 +225,10 @@ def main():
                         showmessage = True
 
                 if not found:
-                    print "\033[91m", folder, "\033[0m"
+                    print "\033[34m", folder, "diff with dir\033[0m"
 
         if showmessage:
-            print "\033[31mItems and folderitems is not equal\033[0m"
+            #print "\033[31mItems and folderitems is not equal\033[0m"
             print "\033[90m", len(lt), "items github", "\033[0m"
             print "\033[90m", len(ltdir), "items folder", "\033[0m"
 
