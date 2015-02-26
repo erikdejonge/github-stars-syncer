@@ -119,7 +119,7 @@ def main():
     names = [x["name"] for x in lt]
     d = {}
     doubles_found = []
-
+    
     for n in names:
         if n in d:
             doubles_found.append(n)
@@ -130,16 +130,18 @@ def main():
     cnt = 0
     to_clone_or_pull = []
     ghbnames = []
-
+    doublecheckname = []
     for i in lt:
         if i["name"] not in doubles_found:
             name = i["name"]
             ghbnames.append(name)
         else:
             doubles_found.remove(i["name"])
+            
             name = i["full_name"].replace("/", "_")
             if name not in ltdir:
                 print "\033[95mdouble:", i["name"], "->", name, "\033[0m"
+            doublecheckname.append(name)
             ghbnames.append(name)
 
         cnt += 1
@@ -225,7 +227,8 @@ def main():
                         showmessage = True
 
                 if not found:
-                    print "\033[34m", folder, "diff with dir\033[0m"
+                    if folder not in doublecheckname:
+                        print "\033[34m", folder, "diff with dir\033[0m"
 
         if showmessage:
             #print "\033[31mItems and folderitems is not equal\033[0m"
