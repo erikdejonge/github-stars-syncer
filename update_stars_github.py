@@ -62,8 +62,8 @@ def clone_or_pull_from(remote):
         origin.fetch()
         origin.pull()
 
-        #for change in origin.pull():
-            #print "\033[90m", str(change).replace("origin/", "  "), "\033[0m"
+        # for change in origin.pull():
+        # print "\033[90m", str(change).replace("origin/", "  "), "\033[0m"
 
         ret = name + " " + str(r.active_branch) + " pulled"
         print "\033[37m", ret, "\033[0m"
