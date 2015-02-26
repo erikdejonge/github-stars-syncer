@@ -28,8 +28,12 @@ def get_star_page(num):
     @type num: int
     @return: None
     """
+    global USERNAME
     if USERNAME == "<<username>>":
-        raise AssertionError("USERNAME: not set (line 23)")
+        if os.path.exists("username.conf"):
+            USERNAME = open("username.conf").read().strip()
+        else:
+            raise AssertionError("USERNAME: not set (line 23)")
 
     cmd = 'curl -s "https://api.github.com/users/' + USERNAME + '/starred?per_page=100&page=' + str(num) + '" > j' + str(num) + '.json'
     print cmd,
