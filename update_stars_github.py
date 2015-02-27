@@ -171,7 +171,7 @@ def main():
             if exists(delp):
                 if os.path.isdir(delp):
                     if os.path.basename(delp) != "_newrepos":
-                        print "\033[31m", "backup and delete:", delp, "\033[0m"
+                        print "\n\033[31m", "backup and delete:", delp, "\033[0m"
                         bupf = join(join(expanduser("~"), "workspace"), "backup")
 
                         if not exists(bupf):
