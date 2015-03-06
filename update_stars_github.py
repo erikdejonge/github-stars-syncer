@@ -156,7 +156,7 @@ def main():
     else:
         for retval in p.map(start_clone_or_pull, to_clone_or_pull):
             if not retval:
-                raise AssertionError(retval)
+                print retval
 
     for folder in os.listdir(githubdir):
         found = False
