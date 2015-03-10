@@ -2,18 +2,21 @@
 """
 update script
 """
-
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import open
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 import sys
-reload(sys)
-
-# noinspection PyUnresolvedReferences
-sys.setdefaultencoding("utf-8")
-
 import tarfile
 import json
 import os
 import pipes
-import cPickle
+import pickle
 from git import Repo
 from os.path import join, expanduser, exists, dirname
 from multiprocessing import Pool, cpu_count
@@ -36,12 +39,12 @@ def get_star_page(num):
             raise AssertionError("USERNAME: not set (line 23)")
 
     cmd = 'curl -s "https://api.github.com/users/' + USERNAME + '/starred?per_page=100&page=' + str(num) + '" > j' + str(num) + '.json'
-    print cmd,
+    print(cmd, end=' ')
     os.system(cmd)
 
     if os.path.exists("j" + str(num) + ".json"):
         parsed = json.load(open("j" + str(num) + ".json"))
-        print len(parsed), "downloaded"
+        print(len(parsed), "downloaded")
         os.remove("j" + str(num) + ".json")
         return parsed
 
@@ -75,7 +78,7 @@ def clone_or_pull_from(remote, name):
 
         gp = join(newrepos, name)
         ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-        print "\n\033[32m", ret, "\033[0m"
+        print("\n\033[32m", ret, "\033[0m")
 
     return True
 
@@ -105,12 +108,12 @@ def main():
 
             lt.extend(stars)
 
-        cPickle.dump(lt, open("starlist.pickle", "w"))
+        pickle.dump(lt, open("starlist.pickle", "w"))
     else:
-        lt = cPickle.load(open("starlist.pickle"))
+        lt = pickle.load(open("starlist.pickle"))
 
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
-    print "\033[34mGithub folder:", githubdir, "\033[0m"
+    print("\033[34mGithub folder:", githubdir, "\033[0m")
     newrepos = join(githubdir, "_newrepos")
 
     if exists(newrepos) and os.path.isdir(newrepos):
@@ -140,7 +143,7 @@ def main():
             
             name = i["full_name"].replace("/", "_")
             if name not in ltdir:
-                print "\033[95mdouble:", i["name"], "->", name, "\033[0m"
+                print("\033[95mdouble:", i["name"], "->", name, "\033[0m")
             doublecheckname.append(name)
             ghbnames.append(name)
 
@@ -156,7 +159,7 @@ def main():
     else:
         for retval in p.map(start_clone_or_pull, to_clone_or_pull):
             if not retval:
-                print retval
+                print(retval)
 
     for folder in os.listdir(githubdir):
         found = False
@@ -171,7 +174,7 @@ def main():
             if exists(delp):
                 if os.path.isdir(delp):
                     if os.path.basename(delp) != "_newrepos":
-                        print "\n\033[31m", "backup and delete:", delp, "\033[0m"
+                        print("\n\033[31m", "backup and delete:", delp, "\033[0m")
                         bupf = join(join(expanduser("~"), "workspace"), "backup")
 
                         if not exists(bupf):
@@ -197,11 +200,11 @@ def main():
                         tar.close()
                         shutil.rmtree(delp)
                 else:
-                    print "\033[91m", "WARNING: files in directory", delp, "\033[0m"
+                    print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
             else:
-                print "\033[91m", delp, "\033[0m"
+                print("\033[91m", delp, "\033[0m")
 
-    print "\n\033[32mDone\033[0m"
+    print("\n\033[32mDone\033[0m")
     if len(lt) != len(ltdir):
         dirnames = os.listdir(githubdir)
         showmessage = False
@@ -215,7 +218,7 @@ def main():
                     showmessage = True
 
             if not found:
-                print "\033[31m", ghbn, "diff with gh\033[0m"
+                print("\033[31m", ghbn, "diff with gh\033[0m")
 
         for folder in dirnames:
             if folder != "_newrepos":
@@ -228,12 +231,12 @@ def main():
 
                 if not found:
                     if folder not in doublecheckname:
-                        print "\033[34m", folder, "diff with dir\033[0m"
+                        print("\033[34m", folder, "diff with dir\033[0m")
 
         if showmessage:
             #print "\033[31mItems and folderitems is not equal\033[0m"
-            print "\033[90m", len(lt), "items github", "\033[0m"
-            print "\033[90m", len(ltdir), "items folder", "\033[0m"
+            print("\033[90m", len(lt), "items github", "\033[0m")
+            print("\033[90m", len(ltdir), "items folder", "\033[0m")
 
 
 if __name__ == "__main__":
