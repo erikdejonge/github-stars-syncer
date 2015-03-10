@@ -108,9 +108,9 @@ def main():
 
             lt.extend(stars)
 
-        pickle.dump(lt, open("starlist.pickle", "w"))
+        pickle.dump(lt, open("starlist.pickle", "wb"))
     else:
-        lt = pickle.load(open("starlist.pickle"))
+        lt = pickle.load(open("starlist.pickle", "rb"))
 
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
     print("\033[34mGithub folder:", githubdir, "\033[0m")
