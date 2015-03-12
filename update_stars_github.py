@@ -20,11 +20,13 @@ import pipes
 import pickle
 from git import Repo
 from os.path import join, expanduser, exists, dirname
-from multiprocessing import Pool, cpu_count
+from multiprocessing.dummy import Pool
 from consoleprinter import console_exception
+
 import shutil
 
 USERNAME = "<<username>>"
+from threading import Lock
 
 
 def get_star_page(num):
@@ -51,6 +53,9 @@ def get_star_page(num):
 
     return []
 
+dotprinted = False
+dotlock = Lock()
+
 
 def clone_or_pull_from(remote, name):
     """
@@ -59,40 +64,62 @@ def clone_or_pull_from(remote, name):
     @return: None
     """
     cnt = 0
+    global dotprinted
+    global dotlock
 
     while True:
         try:
             gp = join(join(join(expanduser("~"), "workspace"), "github"), name)
 
             if exists(gp):
-                # r = Repo(gp)
-                # origin = r.remote()
-                # origin.fetch()
-                # origin.pull()
-                # ret = name + " " + str(r.active_branch) + " pulled"
-                # print "\033[37m", ret, "\033[0m"
-                sys.stdout.write("\033[37m.\033[0m")
+                r = Repo(gp)
+                origin = r.remote()
+                origin.fetch()
+                origin.pull()
+                sys.stdout.write("\033[30m.\033[0m")
                 sys.stdout.flush()
+                try:
+                    dotlock.acquire()
+                    dotprinted = True
+                finally:
+                    dotlock.release()
+
+                # ret = name + " " + str(r.active_branch) + " pulled"
             else:
-                # ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-                # print "\033[32m", ret, "\033[0m"
+                newrepos = join(join(join(expanduser("~"), "workspace"), "github"), os.path.dirname(name))
+
+                if not exists(newrepos):
+                    os.mkdir(newrepos)
+
                 newrepos = join(join(join(expanduser("~"), "workspace"), "github"), name)
 
                 if not exists(newrepos):
                     os.mkdir(newrepos)
 
                 ret = name + " " + str(Repo.clone_from(remote, newrepos).active_branch) + " cloned"
-                print("\033[32m", ret, "\033[0m")
+                try:
+                    dotlock.acquire()
+
+                    if dotprinted is True:
+                        dotprinted = True
+                        ret = "\n" + ret
+                finally:
+                    dotlock.release()
+
+                print("\033[32m" + ret + "\033[0m")
                 newreposlink = join(join(join(expanduser("~"), "workspace"), "github"), "_newrepos")
 
                 if not exists(newreposlink):
                     os.mkdir(newreposlink)
 
-                if not os.path.exists(newreposlink+"/"+os.path.basename(os.path.dirname(newrepos))):
-                    os.mkdir(newreposlink+"/"+os.path.dirname(newrepos))
-                os.system("ln -s " + newrepos + " " + newreposlink+"/"+os.path.basename(os.path.dirname(newrepos)))
+                newreposlink = join(newreposlink, os.path.dirname(name))
+
+                if not exists(newreposlink):
+                    os.mkdir(newreposlink)
+
+                os.system("ln -s " + newrepos + " " + newreposlink + "/" + os.path.basename(name))
         except Exception as e:
-            print(e)
+            console_exception(e)
             cnt += 1
 
             if cnt > 3:
@@ -159,7 +186,7 @@ def main():
         cnt += 1
         to_clone_or_pull.append((i["git_url"], name))
 
-    p = Pool(cpu_count() * 2)
+    p = Pool(8)
 
     # debug = False
     # if debug:
@@ -206,7 +233,7 @@ def main():
                                     os.mkdir(bupf)
 
                                 tarname = join(bupf, pipes.quote(os.path.basename(delp)) + ".tar.gz")
-                                print(tarname)
+
                                 tar = tarfile.open(tarname, "w:gz")
 
                                 def modify(ti):
@@ -219,11 +246,23 @@ def main():
 
                                 tar.add(delp, filter=modify)
                                 tar.close()
-                                shutil.rmtree(join(githubdir, motherf))
+
+                                shutil.rmtree(delp)
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
                         print("\033[91m", delp, "\033[0m")
+    print()
+
+    for root, dirs, files in os.walk(githubdir):
+        for namefolder in dirs:
+            namefolderpath = os.path.join(root, namefolder)
+
+            if len(os.listdir(namefolderpath))==0 and ".git" not in namefolderpath:
+                print("\033[31mEmptyfolder del:", os.path.join(root, namefolder), "\033[0")
+                shutil.rmtree(os.path.join(root, namefolder))
+
+
 
     print("\n\033[32mDone\033[0m")
     fp = open(join(githubdir, "list.txt"), "wt")
