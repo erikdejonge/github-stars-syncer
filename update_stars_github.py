@@ -76,10 +76,13 @@ def clone_or_pull_from(remote, name):
                 origin = r.remote()
                 origin.fetch()
                 origin.pull()
-                sys.stdout.write("\033[30m.\033[0m")
-                sys.stdout.flush()
                 try:
                     dotlock.acquire()
+
+                    if dotprinted is True:
+                        sys.stdout.write("\033[30m.\033[0m")
+
+                    sys.stdout.flush()
                     dotprinted = True
                 finally:
                     dotlock.release()
@@ -233,7 +236,6 @@ def main():
                                     os.mkdir(bupf)
 
                                 tarname = join(bupf, pipes.quote(os.path.basename(delp)) + ".tar.gz")
-
                                 tar = tarfile.open(tarname, "w:gz")
 
                                 def modify(ti):
@@ -246,25 +248,23 @@ def main():
 
                                 tar.add(delp, filter=modify)
                                 tar.close()
-
                                 shutil.rmtree(delp)
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
                         print("\033[91m", delp, "\033[0m")
+
     print()
 
     for root, dirs, files in os.walk(githubdir):
         for namefolder in dirs:
             namefolderpath = os.path.join(root, namefolder)
 
-            if len(os.listdir(namefolderpath))==0 and ".git" not in namefolderpath:
-                print("\033[31mEmptyfolder del:", os.path.join(root, namefolder), "\033[0")
+            if len(os.listdir(namefolderpath)) == 0 and ".git" not in namefolderpath and namefolderpath.count("/") <= 6:
+                print("\033[31mEmptyfolder del:", os.path.join(root, namefolder), "\033[0m")
                 shutil.rmtree(os.path.join(root, namefolder))
 
-
-
-    print("\n\033[32mDone\033[0m")
+    print("\033[32mDone\033[0m")
     fp = open(join(githubdir, "list.txt"), "wt")
 
     for i in lt:
