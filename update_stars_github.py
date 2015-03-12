@@ -21,7 +21,7 @@ import pickle
 from git import Repo
 from os.path import join, expanduser, exists, dirname
 from multiprocessing import Pool, cpu_count
-
+from consoleprinter import console_exception
 import shutil
 
 USERNAME = "<<username>>"
@@ -58,29 +58,47 @@ def clone_or_pull_from(remote, name):
     @type name: str, unicode
     @return: None
     """
-    gp = join(join(join(expanduser("~"), "workspace"), "github"), name)
+    cnt = 0
 
-    if exists(gp):
-        r = Repo(gp)
-        origin = r.remote()
-        origin.fetch()
-        origin.pull()
+    while True:
+        try:
+            gp = join(join(join(expanduser("~"), "workspace"), "github"), name)
 
-        # ret = name + " " + str(r.active_branch) + " pulled"
-        # print "\033[37m", ret, "\033[0m"
-        sys.stdout.write("\033[37m.\033[0m")
-        sys.stdout.flush()
-    else:
-        # ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-        # print "\033[32m", ret, "\033[0m"
-        newrepos = join(join(join(expanduser("~"), "workspace"), "github"), "_newrepos")
+            if exists(gp):
+                # r = Repo(gp)
+                # origin = r.remote()
+                # origin.fetch()
+                # origin.pull()
+                # ret = name + " " + str(r.active_branch) + " pulled"
+                # print "\033[37m", ret, "\033[0m"
+                sys.stdout.write("\033[37m.\033[0m")
+                sys.stdout.flush()
+            else:
+                # ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
+                # print "\033[32m", ret, "\033[0m"
+                newrepos = join(join(join(expanduser("~"), "workspace"), "github"), name)
 
-        if not exists(newrepos):
-            os.mkdir(newrepos)
+                if not exists(newrepos):
+                    os.mkdir(newrepos)
 
-        gp = join(newrepos, name)
-        ret = name + " " + str(Repo.clone_from(remote, gp).active_branch) + " cloned"
-        print("\033[32m", ret, "\033[0m")
+                ret = name + " " + str(Repo.clone_from(remote, newrepos).active_branch) + " cloned"
+                print("\033[32m", ret, "\033[0m")
+                newreposlink = join(join(join(expanduser("~"), "workspace"), "github"), "_newrepos")
+
+                if not exists(newreposlink):
+                    os.mkdir(newreposlink)
+
+                if not os.path.exists(newreposlink+"/"+os.path.basename(os.path.dirname(newrepos))):
+                    os.mkdir(newreposlink+"/"+os.path.dirname(newrepos))
+                os.system("ln -s " + newrepos + " " + newreposlink+"/"+os.path.basename(os.path.dirname(newrepos)))
+        except Exception as e:
+            print(e)
+            cnt += 1
+
+            if cnt > 3:
+                break
+        finally:
+            break
 
     return True
 
@@ -141,7 +159,7 @@ def main():
         cnt += 1
         to_clone_or_pull.append((i["git_url"], name))
 
-    p = Pool(cpu_count() * 4)
+    p = Pool(cpu_count() * 2)
 
     # debug = False
     # if debug:
@@ -152,22 +170,26 @@ def main():
             print(retval)
 
     for motherf in os.listdir(githubdir):
-        if os.path.isdir(motherf):
+        if os.path.isdir(join(githubdir, motherf)):
             for folder in os.listdir(join(githubdir, motherf)):
                 found = False
 
                 for ghbn in ghbnames:
-                    print(ghbn, join(motherf, folder))
                     if ghbn == join(motherf, folder):
                         found = True
 
                 if not found:
                     delp = join(join(githubdir, motherf), folder)
-                    print(delp)
+
                     if exists(delp):
                         if os.path.isdir(delp):
-                            if os.path.basename(os.path.basename(delp)) != "_newrepos":
+                            if "_newrepos" not in delp:
                                 print("\n\033[31m", "backup and delete:", delp, "\033[0m")
+                                bupf = join(join(expanduser("~"), "workspace"), "backup")
+
+                                if not exists(bupf):
+                                    os.mkdir(bupf)
+
                                 bupf = join(join(expanduser("~"), "workspace"), "backup")
 
                                 if not exists(bupf):
@@ -178,7 +200,13 @@ def main():
                                 if not exists(bupf):
                                     os.mkdir(bupf)
 
+                                bupf = join(bupf, motherf)
+
+                                if not exists(bupf):
+                                    os.mkdir(bupf)
+
                                 tarname = join(bupf, pipes.quote(os.path.basename(delp)) + ".tar.gz")
+                                print(tarname)
                                 tar = tarfile.open(tarname, "w:gz")
 
                                 def modify(ti):
@@ -191,7 +219,7 @@ def main():
 
                                 tar.add(delp, filter=modify)
                                 tar.close()
-                                shutil.rmtree(delp)
+                                shutil.rmtree(join(githubdir, motherf))
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
