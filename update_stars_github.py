@@ -213,7 +213,7 @@ def main():
 
                     if exists(delp):
                         if os.path.isdir(delp):
-                            if "_newrepos" not in delp:
+                            if "_newrepos" not in delp and "_projects" not in delp:
                                 print("\n\033[31m", "backup and delete:", delp, "\033[0m")
                                 bupf = join(join(expanduser("~"), "workspace"), "backup")
 
@@ -248,7 +248,10 @@ def main():
 
                                 tar.add(delp, filter=modify)
                                 tar.close()
-                                shutil.rmtree(delp)
+                                if os.path.islink(delp):
+                                    os.remove(delp)
+                                else:
+                                    shutil.rmtree(delp)
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
