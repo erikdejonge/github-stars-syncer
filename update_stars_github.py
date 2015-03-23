@@ -255,7 +255,7 @@ def main():
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
-                        print("\033[91m", delp, "\033[0m")
+                        print("\033[91mbackup, not found:", delp, "\033[0m")
 
     print()
 
