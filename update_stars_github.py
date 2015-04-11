@@ -146,21 +146,23 @@ def main():
     """
     main
     """
-    if not os.path.exists("starlist.pickle"):
-        maxnum = 100
-        lt = []
+    get_stars=True
+    if get_stars:
+        if not os.path.exists("starlist.pickle"):
+            maxnum = 100
+            lt = []
 
-        for num in range(0, maxnum):
-            stars = get_star_page(num + 1)
+            for num in range(0, maxnum):
+                stars = get_star_page(num + 1)
 
-            if len(stars) == 0:
-                break
+                if len(stars) == 0:
+                    break
 
-            lt.extend(stars)
+                lt.extend(stars)
 
-        pickle.dump(lt, open("starlist.pickle", "wb"))
-    else:
-        lt = pickle.load(open("starlist.pickle", "rb"))
+            pickle.dump(lt, open("starlist.pickle", "wb"))
+        else:
+            lt = pickle.load(open("starlist.pickle", "rb"))
 
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
     print("\033[34mGithub folder:", githubdir, "\033[0m")
