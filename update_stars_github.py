@@ -70,7 +70,7 @@ def clone_or_pull_from(remote, name):
     while True:
         try:
             gp = join(join(join(expanduser("~"), "workspace"), "github"), name)
-
+            print(gp)
             if exists(gp):
                 r = Repo(gp)
                 origin = r.remote()
@@ -89,6 +89,7 @@ def clone_or_pull_from(remote, name):
 
                 # ret = name + " " + str(r.active_branch) + " pulled"
             else:
+
                 newrepos = join(join(join(expanduser("~"), "workspace"), "github"), os.path.dirname(name))
 
                 if not exists(newrepos):
@@ -120,7 +121,9 @@ def clone_or_pull_from(remote, name):
                 if not exists(newreposlink):
                     os.mkdir(newreposlink)
 
-                os.system("ln -s " + newrepos + " " + newreposlink + "/" + os.path.basename(name))
+                newreposlinksym = newreposlink + "/" + os.path.basename(name)
+
+                os.system("ln -s " + newrepos + " " + newreposlinksym)
         except Exception as e:
             console_exception(e)
             cnt += 1
@@ -146,23 +149,22 @@ def main():
     """
     main
     """
-    get_stars=True
+    get_stars=False
     if get_stars:
-        if not os.path.exists("starlist.pickle"):
-            maxnum = 100
-            lt = []
+        maxnum = 100
+        lt = []
 
-            for num in range(0, maxnum):
-                stars = get_star_page(num + 1)
+        for num in range(0, maxnum):
+            stars = get_star_page(num + 1)
 
-                if len(stars) == 0:
-                    break
+            if len(stars) == 0:
+                break
 
-                lt.extend(stars)
+            lt.extend(stars)
 
-            pickle.dump(lt, open("starlist.pickle", "wb"))
-        else:
-            lt = pickle.load(open("starlist.pickle", "rb"))
+        pickle.dump(lt, open("starlist.pickle", "wb"))
+    else:
+        lt = pickle.load(open("starlist.pickle", "rb"))
 
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
     print("\033[34mGithub folder:", githubdir, "\033[0m")
@@ -193,13 +195,14 @@ def main():
 
     p = Pool(8)
 
-    # debug = False
-    # if debug:
-    #     for arg, name in to_clone_or_pull:
-    #         start_clone_or_pull(arg)
-    for retval in p.map(start_clone_or_pull, to_clone_or_pull):
-        if not retval:
-            print(retval)
+    debug = True
+    if debug:
+         for arg in to_clone_or_pull:
+             start_clone_or_pull(arg)
+    else:
+        for retval in p.map(start_clone_or_pull, to_clone_or_pull):
+            if not retval:
+                print(retval)
 
     for motherf in os.listdir(githubdir):
         if os.path.isdir(join(githubdir, motherf)):
