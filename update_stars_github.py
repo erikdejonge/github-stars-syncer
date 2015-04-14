@@ -70,7 +70,7 @@ def clone_or_pull_from(remote, name):
     while True:
         try:
             gp = join(join(join(expanduser("~"), "workspace"), "github"), name)
-            print(gp)
+
             if exists(gp):
                 r = Repo(gp)
                 origin = r.remote()
@@ -149,7 +149,7 @@ def main():
     """
     main
     """
-    get_stars=False
+    get_stars=True
     if get_stars:
         maxnum = 100
         lt = []
@@ -195,7 +195,7 @@ def main():
 
     p = Pool(8)
 
-    debug = True
+    debug = False
     if debug:
          for arg in to_clone_or_pull:
              start_clone_or_pull(arg)
