@@ -216,7 +216,7 @@ def main():
                 if not found:
                     delp = join(join(githubdir, motherf), folder)
 
-                    if exists(delp):
+                    if exists(delp) and not os.path.islink(delp):
                         if os.path.isdir(delp):
                             if "_newrepos" not in delp and "_projects" not in delp:
                                 print("\n\033[31m", "backup and delete:", delp, "\033[0m")
