@@ -3,9 +3,9 @@
 """
 update script
 """
-
 from __future__ import division, print_function, absolute_import, unicode_literals
 from future import standard_library
+
 import os
 import sys
 import json
@@ -20,10 +20,10 @@ from threading import Lock
 from consoleprinter import console_exception
 from multiprocessing.dummy import Pool
 from os.path import join, exists, dirname, expanduser
+
 USERNAME = "<<username>>"
+
 dotlock = Lock()
-
-
 dotprinted = False
 
 
@@ -46,6 +46,7 @@ def clone_or_pull_from(remote, name):
                 origin = r.remote()
                 origin.fetch()
                 origin.pull()
+
                 try:
                     dotlock.acquire()
 
@@ -59,7 +60,6 @@ def clone_or_pull_from(remote, name):
 
                 # ret = name + " " + str(r.active_branch) + " pulled"
             else:
-
                 newrepos = join(join(join(expanduser("~"), "workspace"), "github"), os.path.dirname(name))
 
                 if not exists(newrepos):
@@ -92,7 +92,6 @@ def clone_or_pull_from(remote, name):
                     os.mkdir(newreposlink)
 
                 newreposlinksym = newreposlink + "/" + os.path.basename(name)
-
                 os.system("ln -s " + newrepos + " " + newreposlinksym)
         except Exception as e:
             console_exception(e)
@@ -135,7 +134,7 @@ def main():
     """
     main
     """
-    get_stars=True
+    get_stars = True
     if get_stars:
         maxnum = 100
         lt = []
@@ -179,16 +178,18 @@ def main():
         cnt += 1
         to_clone_or_pull.append((i["git_url"], name))
 
-    p = Pool(multiprocessing.cpu_count()*3)
-
+    p = Pool(multiprocessing.cpu_count() * 3)
     debug = False
+
     if debug:
-         for arg in to_clone_or_pull:
-             start_clone_or_pull(arg)
+        for arg in to_clone_or_pull:
+            start_clone_or_pull(arg)
     else:
         for retval in p.map(start_clone_or_pull, to_clone_or_pull):
             if not retval:
                 print(retval)
+
+    needsenter = True
 
     for motherf in os.listdir(githubdir):
         if os.path.isdir(join(githubdir, motherf)):
@@ -204,7 +205,7 @@ def main():
 
                     if exists(delp) and "_projects" not in delp:
                         if os.path.isdir(delp):
-                            if "_newrepos" not in delp and "_projects" not in delp:
+                            if "_newrepos" not in delp:
                                 print("\n\033[31m", "backup and delete:", delp, "\033[0m")
                                 bupf = join(join(expanduser("~"), "workspace"), "backup")
 
@@ -239,14 +240,26 @@ def main():
 
                                 tar.add(delp, filter=modify)
                                 tar.close()
+
                                 if os.path.islink(delp):
                                     os.remove(delp)
                                 else:
                                     shutil.rmtree(delp)
+
+
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
-                        print("\033[91mnot found:", delp, "\033[0m")
+                        if os.path.islink(delp) or ".DS_Store" in delp:
+                            sys.stdout.write("\033[30m*\033[0m")
+                            sys.stdout.flush()
+                            needsenter = True
+                        else:
+                            if needsenter:
+                                print()
+
+                            print("\033[91mnot found:", delp, "\033[0m")
+                            needsenter = False
 
     print()
 
@@ -273,8 +286,8 @@ def start_clone_or_pull(args):
     url, name = args
     return clone_or_pull_from(url, name)
 
-
 standard_library.install_aliases()
+
 
 if __name__ == "__main__":
     main()
