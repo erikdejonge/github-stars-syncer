@@ -1,60 +1,30 @@
+#!/usr/bin/env python3
 # coding=utf-8
 """
 update script
 """
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
-from __future__ import absolute_import
-from builtins import open
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from builtins import range
 
-import sys
-import tarfile
-import json
+from __future__ import division, print_function, absolute_import, unicode_literals
+from future import standard_library
 import os
+import sys
+import json
 import pipes
 import pickle
-from git import Repo
-from os.path import join, expanduser, exists, dirname
-from multiprocessing.dummy import Pool
-from consoleprinter import console_exception
-
 import shutil
+import tarfile
+import multiprocessing
 
-USERNAME = "<<username>>"
+from git import Repo
 from threading import Lock
+from consoleprinter import console_exception
+from multiprocessing.dummy import Pool
+from os.path import join, exists, dirname, expanduser
+USERNAME = "<<username>>"
+dotlock = Lock()
 
-
-def get_star_page(num):
-    """
-    @type num: int
-    @return: None
-    """
-    global USERNAME
-    if USERNAME == "<<username>>":
-        if os.path.exists("username.conf"):
-            USERNAME = open("username.conf").read().strip()
-        else:
-            raise AssertionError("USERNAME: not set (line 23)")
-
-    cmd = 'curl -s "https://api.github.com/users/' + USERNAME + '/starred?per_page=100&page=' + str(num) + '" > j' + str(num) + '.json'
-    print(cmd, end=' ')
-    os.system(cmd)
-
-    if os.path.exists("j" + str(num) + ".json"):
-        parsed = json.load(open("j" + str(num) + ".json"))
-        print(len(parsed), "downloaded")
-        os.remove("j" + str(num) + ".json")
-        return parsed
-
-    return []
 
 dotprinted = False
-dotlock = Lock()
 
 
 def clone_or_pull_from(remote, name):
@@ -136,13 +106,29 @@ def clone_or_pull_from(remote, name):
     return True
 
 
-def start_clone_or_pull(args):
+def get_star_page(num):
     """
-    @type args: tuple
+    @type num: int
     @return: None
     """
-    url, name = args
-    return clone_or_pull_from(url, name)
+    global USERNAME
+    if USERNAME == "<<username>>":
+        if os.path.exists("username.conf"):
+            USERNAME = open("username.conf").read().strip()
+        else:
+            raise AssertionError("USERNAME: not set (line 23)")
+
+    cmd = 'curl -s "https://api.github.com/users/' + USERNAME + '/starred?per_page=100&page=' + str(num) + '" > j' + str(num) + '.json'
+    print(cmd, end=' ')
+    os.system(cmd)
+
+    if os.path.exists("j" + str(num) + ".json"):
+        parsed = json.load(open("j" + str(num) + ".json"))
+        print(len(parsed), "downloaded")
+        os.remove("j" + str(num) + ".json")
+        return parsed
+
+    return []
 
 
 def main():
@@ -193,7 +179,7 @@ def main():
         cnt += 1
         to_clone_or_pull.append((i["git_url"], name))
 
-    p = Pool(8)
+    p = Pool(multiprocessing.cpu_count()*3)
 
     debug = False
     if debug:
@@ -216,7 +202,7 @@ def main():
                 if not found:
                     delp = join(join(githubdir, motherf), folder)
 
-                    if exists(delp) and not os.path.islink(delp):
+                    if exists(delp) and "_projects" not in delp:
                         if os.path.isdir(delp):
                             if "_newrepos" not in delp and "_projects" not in delp:
                                 print("\n\033[31m", "backup and delete:", delp, "\033[0m")
@@ -278,6 +264,17 @@ def main():
     for i in lt:
         fp.write(join(githubdir, i["full_name"]) + "\n")
 
+
+def start_clone_or_pull(args):
+    """
+    @type args: tuple
+    @return: None
+    """
+    url, name = args
+    return clone_or_pull_from(url, name)
+
+
+standard_library.install_aliases()
 
 if __name__ == "__main__":
     main()
