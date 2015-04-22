@@ -251,6 +251,8 @@ def main():
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
                         if os.path.islink(delp) or ".DS_Store" in delp:
+                            if os.path.islink(delp):
+                                os.remove(delp)
                             sys.stdout.write("\033[30m*\033[0m")
                             sys.stdout.flush()
                             needsenter = True
