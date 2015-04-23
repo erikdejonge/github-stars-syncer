@@ -134,7 +134,18 @@ def main():
     """
     main
     """
+    githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
+    print("\033[34mGithub folder:", githubdir, "\033[0m")
+
+    for root, dir, files in os.walk(githubdir):
+        for f in files:
+            f2 = os.path.join(root, f)
+
+            if f2.lower().endswith(".ds_store"):
+                os.remove(f2)
+
     get_stars = True
+
     if get_stars:
         maxnum = 100
         lt = []
@@ -151,8 +162,6 @@ def main():
     else:
         lt = pickle.load(open("starlist.pickle", "rb"))
 
-    githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
-    print("\033[34mGithub folder:", githubdir, "\033[0m")
     newrepos = join(githubdir, "_newrepos")
 
     if exists(newrepos) and os.path.isdir(newrepos):
@@ -245,14 +254,13 @@ def main():
                                     os.remove(delp)
                                 else:
                                     shutil.rmtree(delp)
-
-
                         else:
                             print("\033[91m", "WARNING: files in directory", delp, "\033[0m")
                     else:
                         if os.path.islink(delp) or ".DS_Store" in delp:
                             if os.path.islink(delp):
                                 os.remove(delp)
+
                             sys.stdout.write("\033[30m*\033[0m")
                             sys.stdout.flush()
                             needsenter = True
