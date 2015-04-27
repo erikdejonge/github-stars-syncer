@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
 # coding=utf-8
 """
-update script
+update_stars_github
+
+Usage:
+  update_stars_github.py [options] [--] <command>
+
+Options:
+  -h --help  Show this screen.
+
+Commands:
+    new     only get the new projects
+    all     pull and new
 """
 from __future__ import division, print_function, absolute_import, unicode_literals
 from future import standard_library
@@ -27,10 +37,11 @@ dotlock = Lock()
 dotprinted = False
 
 
-def clone_or_pull_from(remote, name):
+def clone_or_pull_from(remote, name, argument):
     """
-    @type remote: str, unicode
-    @type name: str, unicode
+    @type remote: str
+    @type name: str
+    @type argument: Arguments
     @return: None
     """
     cnt = 0
@@ -45,7 +56,10 @@ def clone_or_pull_from(remote, name):
                 r = Repo(gp)
                 origin = r.remote()
                 origin.fetch()
-                origin.pull()
+                if argument.command == "new":
+                    sys.stdout.write("\033[30m@\033[0m")
+                else:
+                    origin.pull()
 
                 try:
                     dotlock.acquire()
@@ -128,16 +142,18 @@ def get_star_page(num):
         return parsed
 
     return []
+from arguments import Arguments
 
 
 def main():
     """
     main
     """
+    arguments = Arguments(__doc__)
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
     print("\033[34mGithub folder:", githubdir, "\033[0m")
 
-    for root, dir, files in os.walk(githubdir):
+    for root, cdir, files in os.walk(githubdir):
         for f in files:
             f2 = os.path.join(root, f)
 
@@ -166,6 +182,7 @@ def main():
 
     if exists(newrepos) and os.path.isdir(newrepos):
         shutil.rmtree(newrepos)
+        os.makedirs(newrepos, exist_ok=True)
 
     names = [x["name"] for x in lt]
     d = {}
@@ -185,7 +202,7 @@ def main():
         name = i["full_name"]
         ghbnames.append(name)
         cnt += 1
-        to_clone_or_pull.append((i["git_url"], name))
+        to_clone_or_pull.append((i["git_url"], name, arguments))
 
     p = Pool(multiprocessing.cpu_count() * 3)
     debug = False
@@ -293,8 +310,8 @@ def start_clone_or_pull(args):
     @type args: tuple
     @return: None
     """
-    url, name = args
-    return clone_or_pull_from(url, name)
+    url, name, argument = args
+    return clone_or_pull_from(url, name, argument)
 
 standard_library.install_aliases()
 
