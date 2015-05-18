@@ -13,9 +13,9 @@ Commands:
     new     only get the new projects
     all     pull and new
 """
+
 from __future__ import division, print_function, absolute_import, unicode_literals
 from future import standard_library
-
 import os
 import sys
 import json
@@ -26,15 +26,17 @@ import tarfile
 import multiprocessing
 
 from git import Repo
+from arguments import Arguments
 from threading import Lock
 from consoleprinter import console_exception
 from multiprocessing.dummy import Pool
 from os.path import join, exists, dirname, expanduser
-
 USERNAME = "<<username>>"
 
-dotlock = Lock()
 dotprinted = False
+
+
+dotlock = Lock()
 
 
 def clone_or_pull_from(remote, name, argument):
@@ -142,7 +144,15 @@ def get_star_page(num):
         return parsed
 
     return []
-from arguments import Arguments
+
+
+def start_clone_or_pull(args):
+    """
+    @type args: tuple
+    @return: None
+    """
+    url, name, argument = args
+    return clone_or_pull_from(url, name, argument)
 
 
 def main():
@@ -305,16 +315,7 @@ def main():
         fp.write(join(githubdir, i["full_name"]) + "\n")
 
 
-def start_clone_or_pull(args):
-    """
-    @type args: tuple
-    @return: None
-    """
-    url, name, argument = args
-    return clone_or_pull_from(url, name, argument)
-
 standard_library.install_aliases()
-
 
 if __name__ == "__main__":
     main()
