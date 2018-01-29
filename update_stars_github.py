@@ -13,29 +13,28 @@ Commands:
     new     only get the new projects
     all     pull and new
 """
-
 from __future__ import division, print_function, absolute_import, unicode_literals
 from future import standard_library
 import os
 import sys
 import json
+import time
 import pipes
 import pickle
 import shutil
 import tarfile
 import multiprocessing
 
-from git import Repo
+from git import Repo, GitCommandError
 from arguments import Arguments
 from threading import Lock
-from consoleprinter import console_exception
-from multiprocessing.dummy import Pool
+from consoleprinter import console_exception, console
+from multiprocessing import Pool
 from os.path import join, exists, dirname, expanduser
+
 USERNAME = "<<username>>"
 
 dotprinted = False
-
-
 dotlock = Lock()
 
 
@@ -58,10 +57,27 @@ def clone_or_pull_from(remote, name, argument):
                 r = Repo(gp)
                 origin = r.remote()
                 origin.fetch()
+
                 if argument.command == "new":
                     sys.stdout.write("\033[30m@\033[0m")
                 else:
-                    origin.pull()
+                    try:
+                        origin.pull()
+                    except GitCommandError as ex:
+                        console(".", plaintext=True, color="blue")
+                        console("gp", gp)
+
+                        console_exception(ex)
+                        console("sleep 1, reset, and retry")
+                        time.sleep(1)
+                        try:
+                            os.system("cd " + gp + "&&git reset --hard origin/master&&git clean -f")
+                            origin.pull()
+                        except GitCommandError as ex:
+                            console(".", plaintext=True, color="blue")
+                            console("gp", gp)
+
+                            console(str(ex), "giving up", color="red")
 
                 try:
                     dotlock.acquire()
@@ -96,7 +112,7 @@ def clone_or_pull_from(remote, name, argument):
                 finally:
                     dotlock.release()
 
-                print("\033[32m" + ret + "\033[0m")
+                #print("\033[32m" + ret + "\033[0m")
                 newreposlink = join(join(join(expanduser("~"), "workspace"), "github"), "_newrepos")
 
                 if not exists(newreposlink):
@@ -134,10 +150,11 @@ def get_star_page(num):
             raise AssertionError("USERNAME: not set (line 23)")
 
     cmd = 'curl -s "https://api.github.com/users/' + USERNAME + '/starred?per_page=100&page=' + str(num) + '" > j' + str(num) + '.json'
-    print(cmd, end=' ')
+    #print(cmd, end=' ')
     os.system(cmd)
 
     if os.path.exists("j" + str(num) + ".json"):
+        #print(open("j" + str(num) + ".json").read())
         parsed = json.load(open("j" + str(num) + ".json"))
         print(len(parsed), "downloaded")
         os.remove("j" + str(num) + ".json")
@@ -155,10 +172,31 @@ def start_clone_or_pull(args):
     return clone_or_pull_from(url, name, argument)
 
 
+def correct_time_stamps_symlinks():
+    """
+    correct_time_stamps_symlinks
+    """
+    cnt = 0
+    scandir = os.path.expanduser("~/workspace/github/_projects")
+    #scandir = "/Volumes/exosx/workspace/github"
+
+    for tf in os.listdir(scandir):
+        tfd = time.gmtime(os.stat(tf).st_ctime)
+        os.utime(os.path.join(scandir, tf), times=None)
+        print(tf, tfd)
+        cnt += 1
+
+        if cnt > 5:
+            break
+
+
 def main():
     """
     main
     """
+
+    # correct_time_stamps_symlinks()
+    # return
     arguments = Arguments(__doc__)
     githubdir = os.path.join(os.path.expanduser("~"), "workspace/github")
     print("\033[34mGithub folder:", githubdir, "\033[0m")
@@ -172,7 +210,13 @@ def main():
 
     get_stars = True
 
+    if not get_stars and not os.path.exists("starlist.pickle"):
+        get_stars = True
+
     if get_stars:
+        if os.path.exists("starlist.pickle"):
+            os.remove("starlist.pickle")
+
         maxnum = 100
         lt = []
 
@@ -187,6 +231,7 @@ def main():
         pickle.dump(lt, open("starlist.pickle", "wb"))
     else:
         lt = pickle.load(open("starlist.pickle", "rb"))
+
 
     newrepos = join(githubdir, "_newrepos")
 
@@ -314,8 +359,8 @@ def main():
     for i in lt:
         fp.write(join(githubdir, i["full_name"]) + "\n")
 
-
 standard_library.install_aliases()
+
 
 if __name__ == "__main__":
     main()
